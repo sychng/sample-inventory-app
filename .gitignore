@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.env
+.env.*
+venv/
+.venv/
+
+# FastAPI
+*.log
+
+# Node / frontend (future-proof)
+node_modules/
+dist/
+
+# OS
+.DS_Store
+
+# Python packaging
+*.egg-info/
+
