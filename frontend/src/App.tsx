@@ -1,42 +1,108 @@
 import React from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./auth/AuthProvider";
 import Login from "./pages/Login";
+import Layout from "./components/Layout";
+import Samples from "./pages/Samples";
+import MyLoans from "./pages/MyLoans";
 
-export default function App() {
-  const { state, logout } = useAuth();
-
-  if (state.status === "loading") {
-    return (
-      <div className="min-h-dvh grid place-items-center bg-zinc-50">
-        <div className="text-sm text-zinc-500">Loading…</div>
-      </div>
-    );
-  }
-
-  if (state.status === "anon") {
-    return <Login />;
-  }
-
-  // Temporary "logged in" screen (we'll replace with Samples page next)
+function FullscreenLoader() {
   return (
-    <div className="min-h-dvh bg-zinc-50">
-      <div className="mx-auto max-w-md px-4 py-6 space-y-4">
-        <div className="rounded-3xl border bg-white p-5 shadow-sm">
-          <div className="text-lg font-semibold">You are logged in</div>
-          <div className="mt-1 text-sm text-zinc-500">{state.user.email}</div>
+    <div className="min-h-dvh grid place-items-center bg-zinc-50">
+      <div className="text-sm text-zinc-500">Loading…</div>
+    </div>
+  );
+}
 
-          <button
-            onClick={logout}
-            className="mt-4 w-full rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-800"
-          >
-            Logout
-          </button>
-        </div>
-
-        <div className="text-xs text-zinc-500">
-          Next: we’ll build Samples + My Loans pages and navigation.
-        </div>
+function DebugBar() {
+  const { state } = useAuth();
+  const loc = useLocation();
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50">
+      <div className="mx-auto max-w-md px-4 py-1 text-[11px] text-zinc-500 bg-white/80 backdrop-blur border-b">
+        state: <span className="font-medium">{state.status}</span> · path:{" "}
+        <span className="font-medium">{loc.pathname}</span>
       </div>
     </div>
+  );
+}
+
+function Protected({ children }: { children: React.ReactNode }) {
+  const { state } = useAuth();
+  if (state.status === "loading") return <FullscreenLoader />;
+  if (state.status === "anon") return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function LoginRoute() {
+  const { state } = useAuth();
+  if (state.status === "loading") return <FullscreenLoader />;
+  if (state.status === "authed") return <Navigate to="/samples" replace />;
+  return <Login />;
+}
+
+export default function App() {
+  return (
+    <>
+      <DebugBar />
+
+      <div className="pt-7">
+        <Routes>
+          <Route path="/" element={<Navigate to="/samples" replace />} />
+          <Route path="/login" element={<LoginRoute />} />
+
+          <Route
+            path="/samples"
+            element={
+              <Protected>
+                <Layout title="Samples">
+                  <Samples />
+                </Layout>
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/my-loans"
+            element={
+              <Protected>
+                <Layout title="My Loans">
+                  <MyLoans />
+                </Layout>
+              </Protected>
+            }
+          />
+
+          {/* Visible fallback (no silent blank) */}
+          <Route
+            path="*"
+            element={
+              <div className="min-h-dvh bg-zinc-50 p-6">
+                <div className="mx-auto max-w-md rounded-3xl border bg-white p-5 shadow-sm">
+                  <div className="text-sm font-semibold">Route not found</div>
+                  <div className="mt-2 text-sm text-zinc-600">
+                    This page doesn’t exist.
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <a
+                      href="/samples"
+                      className="rounded-2xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white"
+                    >
+                      Go to Samples
+                    </a>
+                    <a
+                      href="/login"
+                      className="rounded-2xl bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900"
+                    >
+                      Go to Login
+                    </a>
+                  </div>
+                </div>
+              </div>
+            }
+          />
+        </Routes>
+      </div>
+    </>
   );
 }

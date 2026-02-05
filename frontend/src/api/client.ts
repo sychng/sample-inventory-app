@@ -16,14 +16,17 @@ async function request<T>(
   url: string,
   options: RequestInit & { json?: Json } = {}
 ): Promise<T> {
-  const headers: HeadersInit = {
-    ...(options.headers || {}),
-  };
+  const headers = new Headers(options.headers);
 
-  let body: BodyInit | undefined = options.body;
+  let body: BodyInit | undefined = undefined;
+
+  // RequestInit.body is BodyInit | null | undefined (null is allowed)
+  if (options.body != null) {
+    body = options.body;
+  }
 
   if (options.json !== undefined) {
-    headers["Content-Type"] = "application/json";
+    headers.set("Content-Type", "application/json");
     body = JSON.stringify(options.json);
   }
 
@@ -31,7 +34,7 @@ async function request<T>(
     ...options,
     headers,
     body,
-    credentials: "include", // IMPORTANT: cookie-based auth
+    credentials: "include", // cookie-based auth
   });
 
   const contentType = res.headers.get("content-type") || "";
@@ -51,6 +54,5 @@ async function request<T>(
 
 export const api = {
   get: <T>(url: string) => request<T>(url, { method: "GET" }),
-  post: <T>(url: string, json?: Json) =>
-    request<T>(url, { method: "POST", json }),
+  post: <T>(url: string, json?: Json) => request<T>(url, { method: "POST", json }),
 };
