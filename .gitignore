@@ -19,3 +19,7 @@ dist/
 # Python packaging
 *.egg-info/
 
+# Vite cache
+frontend/.vite/
+
+
