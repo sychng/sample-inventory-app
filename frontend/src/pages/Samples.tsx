@@ -14,8 +14,18 @@ export default function Samples() {
   const [filter, setFilter] = useState<Filter>("all");
 
   const [items, setItems] = useState<Sample[]>([]);
+
+  // page-level busy (loading list / searching)
   const [busy, setBusy] = useState(false);
+
+  // per-sample busy (loan / return buttons)
+  const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
+
   const [err, setErr] = useState<string | null>(null);
+
+  const setRowBusy = (id: string, v: boolean) => {
+    setBusyMap((prev) => ({ ...prev, [id]: v }));
+  };
 
   const load = async (query: string) => {
     setErr(null);
@@ -35,7 +45,6 @@ export default function Samples() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // simple debounce search
   useEffect(() => {
     const t = setTimeout(() => load(q), 250);
     return () => clearTimeout(t);
@@ -54,9 +63,11 @@ export default function Samples() {
   }, [items, filter]);
 
   const onLoan = async (s: Sample) => {
-    if (s.is_loaned) return;
+    if (s.is_loaned || busyMap[s.id]) return;
 
-    // optimistic UI
+    setErr(null);
+    setRowBusy(s.id, true);
+
     setItems((prev) =>
       prev.map((x) => (x.id === s.id ? { ...x, is_loaned: true } : x))
     );
@@ -80,18 +91,28 @@ export default function Samples() {
         prev.map((x) => (x.id === s.id ? { ...x, is_loaned: false } : x))
       );
       setErr(e instanceof ApiError ? e.message : "Loan failed");
+    } finally {
+      setRowBusy(s.id, false);
     }
   };
 
   const onReturn = async (s: Sample) => {
-    if (!s.current_loan_id) return;
+    if (!s.current_loan_id || busyMap[s.id]) return;
 
-    // optimistic
+    setErr(null);
+    setRowBusy(s.id, true);
+
     const loanId = s.current_loan_id;
+
     setItems((prev) =>
       prev.map((x) =>
         x.id === s.id
-          ? { ...x, is_loaned: false, is_loaned_by_me: false, current_loan_id: null }
+          ? {
+              ...x,
+              is_loaned: false,
+              is_loaned_by_me: false,
+              current_loan_id: null,
+            }
           : x
       )
     );
@@ -101,6 +122,8 @@ export default function Samples() {
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : "Return failed");
       load(q);
+    } finally {
+      setRowBusy(s.id, false);
     }
   };
 
@@ -132,7 +155,13 @@ export default function Samples() {
 
       <div className="space-y-3">
         {filtered.map((s) => (
-          <SampleCard key={s.id} s={s} onLoan={() => onLoan(s)} onReturn={() => onReturn(s)} />
+          <SampleCard
+            key={s.id}
+            s={s}
+            busy={!!busyMap[s.id]}
+            onLoan={() => onLoan(s)}
+            onReturn={() => onReturn(s)}
+          />
         ))}
 
         {!busy && filtered.length === 0 && (
@@ -176,10 +205,12 @@ function Badge({ kind, text }: { kind: "ok" | "warn" | "mine"; text: string }) {
 
 function SampleCard({
   s,
+  busy,
   onLoan,
   onReturn,
 }: {
   s: Sample;
+  busy: boolean;
   onLoan: () => void;
   onReturn: () => void;
 }) {
@@ -210,20 +241,30 @@ function SampleCard({
         {!loaned && (
           <button
             onClick={onLoan}
-           className="flex-1 rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-800"
-
+            disabled={busy}
+            className={cn(
+              "flex-1 rounded-2xl px-4 py-3 text-sm font-semibold",
+              busy
+                ? "bg-zinc-700 text-white/70 cursor-wait"
+                : "bg-zinc-900 text-white hover:bg-zinc-800"
+            )}
           >
-            Loan
+            {busy ? "Loaning…" : "Loan"}
           </button>
         )}
 
         {loaned && mine && (
           <button
             onClick={onReturn}
-            className="flex-1 rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-900 hover:bg-zinc-200"
-
+            disabled={busy}
+            className={cn(
+              "flex-1 rounded-2xl px-4 py-3 text-sm font-semibold",
+              busy
+                ? "bg-zinc-200 text-zinc-500 cursor-wait"
+                : "bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+            )}
           >
-            Return
+            {busy ? "Returning…" : "Return"}
           </button>
         )}
 
@@ -231,7 +272,6 @@ function SampleCard({
           <button
             disabled
             className="flex-1 rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-400 cursor-not-allowed"
-            title="This sample is currently loaned out."
           >
             Unavailable
           </button>

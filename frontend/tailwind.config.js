@@ -4,9 +4,9 @@ export default {
     extend: {
       colors: {
         omron: {
-          blue: "#003A8F",      // OMRON deep blue
-          blueDark: "#002A66",
-          blueLight: "#1F5FBF",
+          blue: "#166fc0",      // OMRON blue
+          blueDark: "#0c3964ff",
+          blueLight: "#2b84d6ff",
           grayBg: "#F5F7FA",
         },
       },
