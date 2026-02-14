@@ -22,4 +22,5 @@ dist/
 # Vite cache
 frontend/.vite/
 
-
+# Local test artifacts
+cookies.txt
