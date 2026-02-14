@@ -5,6 +5,11 @@ import Login from "./pages/Login";
 import Layout from "./components/Layout";
 import Samples from "./pages/Samples";
 import MyLoans from "./pages/MyLoans";
+import ScanEntry from "./pages/ScanEntry";
+import ScanResolve from "./pages/ScanResolve";
+import Tray from "./pages/Tray";
+import TrayBatch from "./pages/TrayBatch";
+
 
 function FullscreenLoader() {
   return (
@@ -37,7 +42,7 @@ function Protected({ children }: { children: React.ReactNode }) {
 function LoginRoute() {
   const { state } = useAuth();
   if (state.status === "loading") return <FullscreenLoader />;
-  if (state.status === "authed") return <Navigate to="/samples" replace />;
+  if (state.status === "authed") return <Navigate to="/scan" replace />;
   return <Login />;
 }
 
@@ -48,7 +53,7 @@ export default function App() {
 
       <div className="pt-7">
         <Routes>
-          <Route path="/" element={<Navigate to="/samples" replace />} />
+          <Route path="/" element={<Navigate to="/scan" replace />} />
           <Route path="/login" element={<LoginRoute />} />
 
           <Route
@@ -68,6 +73,49 @@ export default function App() {
               <Protected>
                 <Layout title="My Loans">
                   <MyLoans />
+                </Layout>
+              </Protected>
+            }
+          />
+          <Route
+            path="/scan"
+            element={
+              <Protected>
+                <Layout title="Scan">
+                  <ScanEntry />
+                </Layout>
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/scan/:code"
+            element={
+              <Protected>
+                <Layout title="Scan">
+                  <ScanResolve />
+                </Layout>
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/tray"
+            element={
+              <Protected>
+                <Layout title="Tray">
+                  <Tray />
+                </Layout>
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/tray/batch"
+            element={
+              <Protected>
+                <Layout title="Batch">
+                  <TrayBatch />
                 </Layout>
               </Protected>
             }
