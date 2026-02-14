@@ -19,3 +19,23 @@ dist/
 # Python packaging
 *.egg-info/
 
+
+# ========================
+# Frontend (Vite + React)
+# ========================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ========================
+# Environment files
+# ========================
+.env
+.env.local
+backend/.env
+
+# ========================
+# macOS
+# ========================
+.DS_Store
+
