@@ -239,6 +239,51 @@ def return_loan(loan_id: str, db: Session = Depends(get_db), user: User = Depend
     return {"ok": True}
 
 
+@router.get("/scan/{code}")
+def resolve_scan(code: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    code = (code or "").strip()
+    if not code:
+        raise HTTPException(status_code=400, detail="code required")
+
+    # Heuristic: sample SKUs start with SG (adjust if needed)
+    is_sample_like = code.upper().startswith("SG")
+
+    if is_sample_like:
+        s = db.scalar(select(Sample).where(Sample.sku == code, Sample.is_active.is_(True)))
+        if not s:
+            raise HTTPException(status_code=404, detail="sample not found")
+
+        active = db.scalar(select(Loan).where(Loan.sample_id == s.id, Loan.returned_at.is_(None)))
+        customer_name = None
+        if active and active.customer_id:
+            c = db.scalar(select(Customer).where(Customer.id == active.customer_id))
+            customer_name = c.name if c else None
+
+        return {
+            "type": "sample",
+            "sample": {
+                "id": str(s.id),
+                "sku": s.sku,
+                "name": s.name,
+                "location": s.location,
+            },
+            "active_loan": (
+                {
+                    "loan_id": str(active.id),
+                    "due_at": active.due_at,
+                    "customer_name": customer_name,
+                }
+                if active
+                else None
+            ),
+        }
+
+    # Otherwise treat as location code
+    # (Later we can validate format like LAB-*-* if you want)
+    return {"type": "location", "location_code": code}
+
+
+
 # =========================
 # Step 2: Quick return by sample_id (+ optional move)
 # =========================
